@@ -1,59 +1,176 @@
-## TODOs
+### Project Summary: Retrieval-Augmented Generation (RAG) System with OpenSearch and Python
 
-1. Model Selection
+#### Overview
 
-Choose a model from Hugging Face's Transformers library for its balance between performance and efficiency. If computational resources allow, consider larger models for better accuracy.
+This project aims to build a Retrieval-Augmented Generation (RAG) system using OpenSearch for document retrieval and the OpenAI API for text generation. The system extracts text from PDF documents, preprocesses the text, indexes it into an OpenSearch instance, retrieves relevant documents based on user queries, and generates responses using the OpenAI GPT-3 model. Here is a step-by-step overview of the project:
 
-For a balance between performance and efficiency, consider the following models available on Hugging Face's Transformers library:
+1. **Setup OpenSearch**: Deploy OpenSearch using Docker and configure it to run locally.
+2. **Extract Text from PDF Documents**: Read and extract text from PDF files using the `PyPDF2` library.
+3. **Preprocess the Text**: Tokenize the extracted text into sentences using the `nltk` library.
+4. **Index the Documents in OpenSearch**: Create an OpenSearch index and add the preprocessed sentences as documents.
+5. **Retrieve Documents Based on Queries**: Use OpenSearch to retrieve documents relevant to a given user query.
+6. **Generate Responses Using OpenAI API**: Use the OpenAI GPT-3 API to generate responses based on the retrieved documents.
+7. **Integrate Retrieval and Generation**: Combine the retrieval and generation steps into a cohesive RAG system.
 
-### 1. **DistilBERT**
-- **Model:** [distilbert-base-uncased](https://huggingface.co/distilbert-base-uncased)
-- **Description:** DistilBERT is a smaller, faster, and lighter version of BERT that retains 97% of BERT’s language understanding. It's optimized for efficiency, making it a good choice if computational resources are limited.
-- **Performance:** High efficiency, slightly lower accuracy compared to larger BERT models.
+#### Key Findings
 
-### 2. **RoBERTa**
-- **Model:** [roberta-base](https://huggingface.co/roberta-base)
-- **Description:** RoBERTa is an optimized version of BERT with improved training techniques and larger training data. It offers a good balance between performance and computational efficiency.
-- **Performance:** High accuracy with moderate resource requirements.
+- **Efficient Text Extraction**: Extracting text from PDFs using `PyPDF2` is effective, though the quality of extraction can vary based on the PDF's structure.
+- **Preprocessing**: Tokenizing text into sentences using `nltk` ensures the data is indexed in a granular and searchable format.
+- **OpenSearch Indexing**: OpenSearch is effective for indexing and searching large volumes of text data, providing quick retrieval times.
+- **Integration with OpenAI**: The OpenAI GPT-3 model can generate coherent and contextually relevant responses when provided with sufficient context from the retrieved documents.
 
-### 3. **ALBERT**
-- **Model:** [albert-base-v2](https://huggingface.co/albert-base-v2)
-- **Description:** ALBERT is designed to be more parameter-efficient than BERT, achieving comparable performance with fewer parameters.
-- **Performance:** Excellent parameter efficiency, with good accuracy and lower resource requirements.
+#### Suggestions for Further Exploration
 
-### 4. **BERT**
-- **Model:** [bert-base-uncased](https://huggingface.co/bert-base-uncased)
-- **Description:** The original BERT model, well-balanced in terms of performance and resource usage. It’s a versatile choice for many natural language processing tasks.
-- **Performance:** Very high accuracy with moderate resource requirements.
+1. **Enhanced Text Processing**: Improve text extraction and preprocessing by incorporating advanced techniques to handle complex PDF structures and clean the extracted text.
+2. **Expand Data Sources**: Integrate additional data sources, such as web pages, databases, and other document types, to enrich the knowledge base.
+3. **Advanced Retrieval Techniques**: Explore advanced retrieval techniques, such as using vector search and k-NN, to improve the relevance of retrieved documents.
+4. **Fine-Tuning Language Models**: Fine-tune language models on domain-specific data to improve the quality and relevance of generated responses.
+5. **Security and Authentication**: Implement robust security measures, including SSL/TLS, to protect the data and communication between components.
+6. **Scalability and Performance**: Optimize the system for scalability and performance to handle larger datasets and more concurrent users.
+7. **User Interface**: Develop a user-friendly interface for querying the RAG system, visualizing results, and interacting with the generated responses.
 
-### 5. **GPT-2**
-- **Model:** [gpt2](https://huggingface.co/gpt2)
-- **Description:** GPT-2 is a transformer-based model designed for generating coherent and contextually relevant text. It’s efficient in terms of generation tasks.
-- **Performance:** High-quality text generation with moderate to high resource requirements.
+### Detailed Code and Setup Instructions
 
-### 6. **TinyBERT**
-- **Model:** [huawei-noah/TinyBERT_General_4L_312D](https://huggingface.co/huawei-noah/TinyBERT_General_4L_312D)
-- **Description:** TinyBERT is a distilled version of BERT designed for better efficiency and faster inference while maintaining a high level of performance.
-- **Performance:** High efficiency with good performance for many NLP tasks.
+Below is the complete and updated code for the project, including the necessary steps and modifications:
 
-Each of these models strikes a balance between performance and efficiency, with specific strengths depending on your particular use case. For general-purpose NLP tasks, `roberta-base` and `bert-base-uncased` are excellent choices. If efficiency is a primary concern, `distilbert-base-uncased` and `TinyBERT` are more suitable. For text generation tasks, `gpt2` is recommended. 
+#### Extract Text from PDF Documents
 
-For our case, we will choose: 
+```python
+import PyPDF2
 
+def extract_text_from_pdf(pdf_path):
+    pdf_text = ""
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfFileReader(file)
+        for page_num in range(reader.numPages):
+            page = reader.getPage(page_num)
+            pdf_text += page.extractText()
+    return pdf_text
 
+pdf_texts = []
+for pdf_file in ['path_to_pdf1.pdf', 'path_to_pdf2.pdf']:
+    pdf_texts.append(extract_text_from_pdf(pdf_file))
+```
 
-2. Corpus Assembly
+#### Preprocess the Text
 
-Assemble a small corpus of legal documents related to the SFC Code of Conduct. This information can be found on their website; you may need to extract data from the link above to form documents for efficient data retrieval. The dataset should be manageable in size (e.g., 2-4 documents) to simplify preprocessing and allow for quick iterations during the live-coding session.
+```python
+import nltk
+from nltk.tokenize import sent_tokenize
 
+nltk.download('punkt')
 
+def preprocess_text(text):
+    sentences = sent_tokenize(text)
+    return sentences
 
-3. Data Preprocessing
+preprocessed_texts = [preprocess_text(text) for text in pdf_texts]
+```
 
-   - Write scripts to clean and preprocess the text data. This includes removing special characters, unnecessary whitespace, and potentially summarizing long documents to ensure they are concise and model-friendly.
+#### Index the Documents in OpenSearch
 
+```python
+from opensearchpy import OpenSearch, helpers
+from dotenv import load_dotenv
+import os
 
+# Load environment variables from .env file
+load_dotenv()
 
-4. OpenSearch Integration
+# Retrieve username and password from environment variables
+username = os.getenv('OPENSEARCH_USERNAME')
+password = os.getenv('OPENSEARCH_PASSWORD')
 
-Set up an OpenSearch instance to index the preprocessed corpus. Write scripts to ingest the documents into OpenSearch, enabling efficient data retrieval during the question-answering process.
+# Initialize OpenSearch client with authentication
+client = OpenSearch(
+    hosts=[{'host': 'localhost', 'port': 9200}],
+    http_compress=True,
+    http_auth=(username, password)
+)
+
+# Create an index
+index_name = 'documents'
+client.indices.create(index=index_name, ignore=400)
+
+# Index the preprocessed sentences
+batch_size = 100
+doc_id = 0
+actions = []
+
+for text in preprocessed_texts:
+    for sentence in text:
+        document = {"content": sentence}
+        action = {
+            "_index": index_name,
+            "_id": doc_id,
+            "_source": document
+        }
+        actions.append(action)
+        doc_id += 1
+        if len(actions) == batch_size:
+            helpers.bulk(client, actions)
+            actions = []
+
+# Index any remaining documents
+if actions:
+    helpers.bulk(client, actions)
+
+print("Indexing completed.")
+```
+
+#### Retrieve Documents Based on Queries
+
+```python
+def retrieve_documents(query, index_name='documents', top_k=3):
+    response = client.search(
+        index=index_name,
+        body={
+            "query": {
+                "multi_match": {
+                    "query": query,
+                    "fields": ["content"]
+                }
+            },
+            "size": top_k
+        }
+    )
+    return [hit['_source'] for hit in response['hits']['hits']]
+```
+
+#### Generate Responses Using OpenAI API
+
+```python
+import openai
+
+openai.api_key = os.getenv('OPENAI_API_KEY')
+
+def generate_response(prompt, documents):
+    context = " ".join([doc['content'] for doc in documents])
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": f"{context}\n\n{prompt}"}
+    ]
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        max_tokens=150
+    )
+    return response.choices[0].message['content'].strip()
+```
+
+#### Integrate Retrieval and Generation
+
+```python
+def rag_system(query):
+    retrieved_docs = retrieve_documents(query)
+    response = generate_response(query, retrieved_docs)
+    return response
+
+# Example usage
+query = "Tell me about Priority for client orders: order handling and recording."
+print(rag_system(query))
+```
+
+### Conclusion
+
+This project demonstrates how to create a basic RAG system using OpenSearch for document retrieval and OpenAI GPT-3 for text generation. By extracting and preprocessing text from PDFs, indexing it in OpenSearch, and using GPT-3 for response generation, we can build an effective system for various applications. Further exploration and enhancements can lead to a more robust and scalable system.
