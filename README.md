@@ -30,4 +30,12 @@ This project involves building a Retrieval-Augmented Generation (RAG) system usi
 5. **Scalability and Performance**: Optimize the system to handle larger datasets and more concurrent users efficiently.
 6. **User Interface**: Develop a user-friendly interface for querying the RAG system and visualizing results.
 
+
+#### hacks
+
+* if there is problem with starting docker container sudo sysctl -w vm.max_map_count=262144
+* make sure the password in the .env file can pass the regex (must adhere to safe password requirements)
+* turn off security with plugins.security.disabled=true in the docker-compose file
+
+
 By following these steps and utilizing the described enhancements, the RAG system becomes more effective and robust, providing better document retrieval and response generation capabilities.
